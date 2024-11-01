@@ -47,7 +47,14 @@ export default async function handler(req, res) {
     const childProcess = exec(execCommand, { timeout: 5000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       if (error) {
-        return res.status(400).json({ output: stderr || error.message });
+        if (error.signal === 'SIGTERM' || error.signal === 'SIGKILL') {
+          return res.status(408).json({ output: "Error: execution timed out." });
+        } else {
+            // filter the error message to avoid leaking the file path
+            console.log(error.code);
+            const filteredError = (stderr || error.message).replace(filePath, "temporary file");
+            return res.status(400).json({ output: filteredError });
+        }
       }
       res.status(200).json({ output: stdout });
     });
