@@ -34,9 +34,35 @@ model Template {
   forks       Template[] @relation("ForkRelation")
 }
 
-model Tag {
-  id   Int    @id @default(autoincrement())
-  name String @unique
 
+model Tag {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
   templates Template[] @relation("TemplateTags")
+  blogPosts BlogPost[] @relation("BlogPostTags")
+}
+
+model BlogPost {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String
+  tags        Tag[]     @relation("BlogPostTags")
+  authorId    Int
+  comments    Comment[]
+  rating      Int       @default(0) 
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  content   String
+  authorId  Int
+  postId    Int
+  parentId  Int?      // Nullable, since top-level comments don’t have a parent
+  post      BlogPost  @relation(fields: [postId], references: [id])
+  rating    Int       @default(0)
+  createdAt DateTime  @default(now())
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  Replies   Comment[] @relation("CommentReplies")
 }
