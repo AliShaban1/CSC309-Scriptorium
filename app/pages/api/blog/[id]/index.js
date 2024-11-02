@@ -9,6 +9,7 @@ export default async function handler(req, res) {
         where: { id: parseInt(id) },
         include: {
           comments: {
+            where: { hidden: false }, // Only include non-hidden comments
             orderBy: { rating: 'desc' },
           },
           tags: true,
@@ -18,14 +19,32 @@ export default async function handler(req, res) {
       if (!blogPost) {
         return res.status(404).json({ error: 'Blog post not found' });
       }
+
+      // Check if the post is hidden and if the requester is not the author
+      if (blogPost.hidden && blogPost.authorId !== userId) {
+        return res.status(403).json({ error: 'You do not have permission to view this post' });
+      }
+
       res.status(200).json(blogPost);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get blog post' });
     }
   } else if (req.method === 'PUT') {
-    const { title, description, tags, templateIds } = req.body;
-
     try {
+      // Restrict editing if the post is hidden
+      const blogPost = await prisma.blogPost.findUnique({
+        where: { id: parseInt(id) },
+      });
+
+      if (!blogPost) {
+        return res.status(404).json({ error: 'Blog post not found' });
+      }
+
+      if (blogPost.hidden && blogPost.authorId === userId) {
+        return res.status(403).json({ error: 'You cannot edit a hidden blog post' });
+      }
+
+      const { title, description, tags, templateIds } = req.body;
       const updatedPost = await prisma.blogPost.update({
         where: { id: parseInt(id) },
         data: {

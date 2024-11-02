@@ -40,9 +40,16 @@ export default async function handler(req, res) {
     try {
       let orderBy = { rating: 'desc' }; 
       const blogPosts = await prisma.blogPost.findMany({
-        orderBy,
+        where: {
+          OR: [
+            { hidden: false }, // Publicly visible posts
+            { hidden: true, authorId: userId }, // Hidden posts visible only to the author
+          ],
+        },
+        orderBy: { rating: 'desc'},
         include: {
           comments: {
+            where: { hidden: false},
             orderBy: { rating: 'desc' },
           },
         },

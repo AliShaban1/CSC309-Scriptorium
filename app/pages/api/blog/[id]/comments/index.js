@@ -8,9 +8,14 @@ export default async function handler(req, res) {
     try {
       const comments = await prisma.comment.findMany({
         where: { postId: parseInt(id), parentId: null }, // only fetch only top level comments 
+        OR: [
+          { hidden: false }, // Publicly visible comments
+          { hidden: true, authorId: userId }, // Hidden comments visible only to the author
+        ],
         orderBy: { rating: 'desc' },
         include: {
           Replies: {
+            where: { hidden: false }, // Only include non-hidden replies
             orderBy: { rating: 'desc' },
           },
         },
@@ -36,6 +41,9 @@ export default async function handler(req, res) {
         }
         if (parentComment.postId !== parseInt(id)) {
             return res.status(400).json({ error: 'Invalid parentId: parent comment does not belong to this blog post' });
+        }
+        if (parentComment.hidden && parentComment.authorId === userId) {
+          return res.status(403).json({ error: 'You cannot reply to a hidden comment' });
         }
     }
 
