@@ -13,6 +13,7 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+<<<<<<< HEAD
 model User {
   id             Int      @id @default(autoincrement())
   firstName      String
@@ -21,6 +22,29 @@ model User {
   password       String
   phoneNumber    String?
   profilePicture String?  
+  templates Template[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model Template {
+  id          Int        @id @default(autoincrement())
+  title       String
+  code        String
+  language    String
+  explanation String     @default("")
+  tags        Tag[]      @relation("TemplateTags")
+  authorID    Int
+  author      User       @relation(fields: [authorID], references: [id])
+  forked      Boolean    @default(false)
+  forkedId    Int?
+  forkedFrom  Template?  @relation("ForkRelation", fields: [forkedId], references: [id])
+  forks       Template[] @relation("ForkRelation")
+}
+
+model Tag {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  templates Template[] @relation("TemplateTags")
 }
