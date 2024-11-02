@@ -17,6 +17,8 @@ datasource db {
 model User {
   id        Int        @id @default(autoincrement())
   templates Template[]
+  liked     BlogPost[] @relation("likedBlogPosts")
+  disliked  BlogPost[] @relation("dislikedBlogPosts")
 }
 
 model Template {
@@ -50,6 +52,8 @@ model BlogPost {
   authorId    Int
   comments    Comment[]
   rating      Int        @default(0)
+  liked       User[]     @relation("likedBlogPosts")
+  disliked    User[]     @relation("dislikedBlogPosts")
   templates   Template[] @relation("BlogPostTemplates")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

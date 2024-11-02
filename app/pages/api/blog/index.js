@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
+
+const pageSize = 10;
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     // create a new blog post 
@@ -40,7 +43,7 @@ export default async function handler(req, res) {
     try {
       let orderBy = { rating: 'desc' };
 
-      const { id, title, content, tags, templateIds, authorId } = req.body;
+      const { id, title, content, tags, templateIds, authorId, page } = req.body;
 
       const filters = {};
 
@@ -86,8 +89,14 @@ export default async function handler(req, res) {
           },
         },
       });
+      let pageNumber = 1;
+      if (page && Number(page)) {
+        pageNumber = Number(page);
+      }
+      const firstOnPage = (pageNumber - 1) * pageSize;
+      const blogPostPage = blogPosts.slice(firstOnPage, firstOnPage + pageSize - 1);
 
-      return res.status(200).json(blogPosts);
+      return res.status(200).json(blogPostPage);
     } catch (error) {
       console.error('Error fetching blog posts:', error);
       return res.status(400).json({ error: 'Failed to retrieve blog posts' });

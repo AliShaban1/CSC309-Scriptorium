@@ -143,7 +143,7 @@ export default async function handler(req, res) {
 
         const templatesPage = templates.slice(firstOnPage, firstOnPage + pageSize - 1);
 
-        return res.status(201).json({ results: templatesPage });
+        return res.status(200).json({ results: templatesPage });
     } else {
         return res.status(400).json({ error: "Method not supported." })
     }
