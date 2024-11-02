@@ -6,12 +6,30 @@ const pageSize = 10;
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     // create a new blog post 
-    const { title, description, tags, templateIds, authorId } = req.body;
+    let { title, description, tags, templateIds, authorId } = req.body;
 
     if (!title || !description || !authorId) {
       return res.status(400).json({ error: 'Title, description, and authorId are required' });
     }
 
+    authorId = Number(authorId)
+
+    let tagConnections = [];
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+      tagConnections = tagArray.map(tag => ({
+        where: { name: tag },
+        create: { name: tag }
+      }));
+    }
+
+    let templateConnections = [];
+    if (templateConnections) {
+      const templateArray = templateIds.split(',').map(templateId => parseInt(templateId.trim()));
+      templateConnections = templateArray.map(templateId => ({
+        id: templateId
+      }));
+    }
     // VALIDATE AUTHOR ID LATER
 
     try {
@@ -20,11 +38,11 @@ export default async function handler(req, res) {
         description,
         authorId,
         tags: {
-          connectOrCreate: tags.map((tag) => ({
-            where: { name: tag },
-            create: { name: tag },
-          })),
+          connectOrCreate: tagConnections
         },
+        templates: {
+          connect: templateConnections
+        }
       };;
 
       const newPost = await prisma.blogPost.create({
@@ -36,7 +54,7 @@ export default async function handler(req, res) {
 
       return res.status(201).json(newPost);
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to create blog post' });
+      return res.status(400).json({ error: `Failed, ${error}` });
     }
   } else if (req.method === 'GET') {
 
