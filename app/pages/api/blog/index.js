@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     try {
       let orderBy = { rating: 'desc' };
 
-      const { id, title, content, tags, templateIds, authorId, page } = req.body;
+      const { id, title, description, tags, templateIds, authorId, page } = req.body;
 
       const filters = {};
 
@@ -58,9 +58,9 @@ export default async function handler(req, res) {
           contains: title,
         }
       }
-      if (content) {
-        filters.content = {
-          contains: content,
+      if (description) {
+        filters.description = {
+          contains: description,
         }
       }
       if (tags) {
