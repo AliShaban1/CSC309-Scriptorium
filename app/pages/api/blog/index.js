@@ -12,25 +12,25 @@ export default async function handler(req, res) {
     // VALIDATE AUTHOR ID LATER
 
     try {
-        const data = {
-            title,
-            description,
-            authorId,
-            tags: {
-              connectOrCreate: tags.map((tag) => ({
-                where: { name: tag },
-                create: { name: tag },
-              })),
-            },
-          };;
-          
-          const newPost = await prisma.blogPost.create({
-            data,
-            include: {
-                tags: true,
-            },
-          });
-          
+      const data = {
+        title,
+        description,
+        authorId,
+        tags: {
+          connectOrCreate: tags.map((tag) => ({
+            where: { name: tag },
+            create: { name: tag },
+          })),
+        },
+      };;
+
+      const newPost = await prisma.blogPost.create({
+        data,
+        include: {
+          tags: true,
+        },
+      });
+
       return res.status(201).json(newPost);
     } catch (error) {
       return res.status(500).json({ error: 'Failed to create blog post' });
@@ -38,9 +38,48 @@ export default async function handler(req, res) {
   } else if (req.method === 'GET') {
 
     try {
-      let orderBy = { rating: 'desc' }; 
+      let orderBy = { rating: 'desc' };
+
+      const { id, title, content, tags, templateIds, authorId } = req.body;
+
+      const filters = {};
+
+      if (id && Number(id)) {
+        filters.id = id;
+      }
+      if (authorId && Number(authorId)) {
+        filters.authorId = Number(authorId);
+      }
+      if (title) {
+        filters.title = {
+          contains: title,
+        }
+      }
+      if (content) {
+        filters.content = {
+          contains: content,
+        }
+      }
+      if (tags) {
+        let tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+        filters.tags = {
+          some: {
+            name: { in: tagArray }
+          }
+        }
+      }
+      if (templateIds) {
+        let templateIdArray = templateIds.split(',').map(templateId => Number(templateId));
+        filters.templates = {
+          some: {
+            id: { in: templateIdArray }
+          }
+        }
+      }
+
       const blogPosts = await prisma.blogPost.findMany({
         orderBy,
+        where: filters,
         include: {
           comments: {
             orderBy: { rating: 'desc' },
@@ -51,7 +90,7 @@ export default async function handler(req, res) {
       return res.status(200).json(blogPosts);
     } catch (error) {
       console.error('Error fetching blog posts:', error);
-      return res.status(500).json({ error: 'Failed to retrieve blog posts' });
+      return res.status(400).json({ error: 'Failed to retrieve blog posts' });
     }
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
