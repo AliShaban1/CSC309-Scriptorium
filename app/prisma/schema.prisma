@@ -17,6 +17,7 @@ datasource db {
 model User {
   id        Int        @id @default(autoincrement())
   templates Template[]
+  reports Report[]
 }
 
 model Template {
@@ -34,7 +35,6 @@ model Template {
   forks       Template[] @relation("ForkRelation")
 }
 
-
 model Tag {
   id        Int        @id @default(autoincrement())
   name      String     @unique
@@ -50,6 +50,8 @@ model BlogPost {
   authorId    Int
   comments    Comment[]
   rating      Int       @default(0) 
+  hidden      Boolean   @default(false)
+  reportCount Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -65,4 +67,16 @@ model Comment {
   createdAt DateTime  @default(now())
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   Replies   Comment[] @relation("CommentReplies")
+  hidden    Boolean   @default(false)
+  reportCount Int     @default(0)
+}
+
+model Report {
+  id          Int       @id @default(autoincrement())
+  explanation String
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  contentId   Int       //Id of reported content (BlogPost or Comment)
+  contentType String    //Either post or comment
+  createdAt   DateTime  @default(now())
 }
