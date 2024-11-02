@@ -83,9 +83,6 @@ export default async function handler(req, res) {
       const likedByUser = post.liked.some(user => user.id === Number(authorId));
       const dislikedByUser = post.disliked.some(user => user.id === Number(authorId));
 
-      console.log(likedByUser);
-      console.log(dislikedByUser);
-
       let updatedPost;
 
       if (upOrDown === 1) {
@@ -127,7 +124,6 @@ export default async function handler(req, res) {
             },
             include: { liked: true, disliked: true }
           });
-          console.log("completed first update")
         }
       } else {
         if (dislikedByUser) {

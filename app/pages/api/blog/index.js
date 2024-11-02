@@ -87,6 +87,7 @@ export default async function handler(req, res) {
           comments: {
             orderBy: { rating: 'desc' },
           },
+          tags: true
         },
       });
       let pageNumber = 1;
