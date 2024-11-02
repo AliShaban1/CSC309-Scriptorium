@@ -15,10 +15,12 @@ datasource db {
 
 // placeholder user for now
 model User {
-  id        Int        @id @default(autoincrement())
-  templates Template[]
-  liked     BlogPost[] @relation("likedBlogPosts")
-  disliked  BlogPost[] @relation("dislikedBlogPosts")
+  id               Int        @id @default(autoincrement())
+  templates        Template[]
+  liked            BlogPost[] @relation("likedBlogPosts")
+  disliked         BlogPost[] @relation("dislikedBlogPosts")
+  likedComments    Comment[]  @relation("likedComments")
+  dislikedComments Comment[]  @relation("dislikedComments")
 }
 
 model Template {
@@ -67,6 +69,8 @@ model Comment {
   parentId  Int? // Nullable, since top-level comments don’t have a parent
   post      BlogPost  @relation(fields: [postId], references: [id])
   rating    Int       @default(0)
+  liked     User[]    @relation("likedComments")
+  disliked  User[]    @relation("dislikedComments")
   createdAt DateTime  @default(now())
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   Replies   Comment[] @relation("CommentReplies")
