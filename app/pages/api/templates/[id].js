@@ -4,12 +4,29 @@ const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
     if (req.method === "PUT") {
+        const token = req.headers.authorization.split(' ')[1];
         const { id } = req.query;
         const { title, explanation, tags, code } = req.body;
+
+        if (!token) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const { userId } = jwt.verify(token, process.env.JWT_SECRET);
 
         // check that id is actually valid
         if (!Number(id)) {
             return res.status(404).json({ error: "Invalid ID." })
+        }
+
+        const initialTemplate = prisma.template.findUnique({
+            where: { id: Number(id), include: { author: true } }
+        });
+
+        if (!initialTemplate) {
+            return res.status(404).json({ error: "Invalid ID." });
+        } else if (initialTemplate.author.id !== userId) {
+            return res.status(401).json({ error: "Cannot update a template that does not belong to you!" })
         }
 
         const data = {};
@@ -45,11 +62,26 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: "Invalid ID or data." })
         }
     } else if (req.method === "DELETE") {
+        const token = req.headers.authorization.split(' ')[1];
         const { id } = req.query;
         if (!Number(id)) {
             return res.status(404).json({ error: "Invalid ID." });
         }
+        if (!token) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const { userId } = jwt.verify(token, process.env.JWT_SECRET);
         try {
+            const initialTemplate = prisma.template.findUnique({
+                where: { id: Number(id), include: { author: true } }
+            });
+
+            if (!initialTemplate) {
+                return res.status(404).json({ error: "Invalid ID." });
+            } else if (initialTemplate.author.id !== userId) {
+                return res.status(401).json({ error: "Cannot delete a template that does not belong to you!" })
+            }
             const deleted = await prisma.template.delete({
                 where: { id: Number(id) },
             })
