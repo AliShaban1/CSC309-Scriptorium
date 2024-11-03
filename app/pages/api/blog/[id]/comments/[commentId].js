@@ -129,5 +129,7 @@ export default async function handler(req, res) {
         } catch (error) {
             return res.status(400).json({ error: `Failed to update blog post: ${error}` });
         }
+    } else {
+        return res.status(400).json({ error: "Method not allowed." })
     }
 }
