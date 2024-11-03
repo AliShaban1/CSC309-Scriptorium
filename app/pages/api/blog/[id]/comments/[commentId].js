@@ -1,14 +1,17 @@
 import { PrismaClient } from '@prisma/client';
+import { protect } from '../../../../middleware/auth';
 const prisma = new PrismaClient();
 
-export default async function handler(req, res) {
-    const { commentId } = req.query;
-    const id = commentId;
+async function handler(req, res) {
+    
     if (req.method === 'POST') {
         // we'll use POST requests for rating
-        const { authorId, rating } = req.body;
-        if (!authorId || !rating) {
-            return res.status(400).json({ error: "authorId and rating are required." });
+        const { commentId } = req.query;
+        const id = commentId;
+        const authorId = req.userId;
+        const {rating} = req.body;
+        if (!rating) {
+            return res.status(400).json({ error: "rating is required." });
         }
 
         if (!Number(rating)) {
@@ -23,7 +26,6 @@ export default async function handler(req, res) {
 
         try {
             // we need to check if the user has already liked this post
-
             const post = await prisma.comment.findUnique({
                 where: { id: parseInt(id) },
                 include: {
@@ -133,3 +135,5 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Method not allowed." })
     }
 }
+
+export default protect(handler);
