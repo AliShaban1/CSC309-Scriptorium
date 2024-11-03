@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { protect, adminOnly } from '../../../../middleware/auth';
+
 const prisma = new PrismaClient();
-export default async function handler(req, res) {
+
+const handler = async (req, res) => {
   const { id } = req.query;
 
   if (req.method === 'GET') {
@@ -215,3 +218,5 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
+
+export default protect(adminOnly(handler));

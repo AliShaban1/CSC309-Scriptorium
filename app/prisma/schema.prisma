@@ -29,6 +29,7 @@ model User {
   disliked         BlogPost[] @relation("dislikedBlogPosts")
   likedComments    Comment[]  @relation("likedComments")
   dislikedComments Comment[]  @relation("dislikedComments")
+  role             String     @default("user")
 }
 
 model Template {
