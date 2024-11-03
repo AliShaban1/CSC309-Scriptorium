@@ -67,7 +67,7 @@ model Comment {
   authorId  Int
   postId    Int
   parentId  Int? // Nullable, since top-level comments don’t have a parent
-  post      BlogPost  @relation(fields: [postId], references: [id])
+  post      BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
   rating    Int       @default(0)
   liked     User[]    @relation("likedComments")
   disliked  User[]    @relation("dislikedComments")

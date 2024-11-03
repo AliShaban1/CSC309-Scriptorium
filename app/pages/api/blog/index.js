@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     }
 
     let templateConnections = [];
-    if (templateConnections) {
+    if (templateIds) {
       const templateArray = templateIds.split(',').map(templateId => parseInt(templateId.trim()));
       templateConnections = templateArray.map(templateId => ({
         id: templateId

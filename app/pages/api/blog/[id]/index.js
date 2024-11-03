@@ -27,6 +27,14 @@ export default async function handler(req, res) {
   } else if (req.method === 'PUT') {
     const { title, description, tags, templateIds } = req.body;
 
+    let templateConnections = [];
+    if (templateIds) {
+      const templateArray = templateIds.split(',').map(templateId => parseInt(templateId.trim()));
+      templateConnections = templateArray.map(templateId => ({
+        id: templateId
+      }));
+    }
+
     try {
       const updatedPost = await prisma.blogPost.update({
         where: { id: parseInt(id) },
@@ -34,7 +42,9 @@ export default async function handler(req, res) {
           title,
           description,
           tags,
-          templateIds,
+          templates: {
+            connect: templateConnections
+          },
         },
       });
 
@@ -43,14 +53,17 @@ export default async function handler(req, res) {
       res.status(400).json({ error: 'Failed to update blog post' });
     }
   } else if (req.method === 'DELETE') {
+    if (!Number(id)) {
+      return res.status(404).json({ error: "Invalid ID." });
+    }
     try {
       await prisma.blogPost.delete({
-        where: { id: parseInt(id) },
+        where: { id: Number(id) },
       });
 
       res.status(204).end();
     } catch (error) {
-      res.status(500).json({ error: 'Failed to delete blog post' });
+      res.status(400).json({ error: `Failed, ${error}` });
     }
   } else if (req.method === 'POST') {
     // we'll use POST requests for rating
