@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { protect } from '../../../../middleware/auth';
+import { protect } from '../../../../../middleware/auth';
 const prisma = new PrismaClient();
 
 async function handler(req, res) {

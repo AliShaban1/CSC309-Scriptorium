@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 				.status(201)
 				.json({ token, user: { id: user.id, email: user.email } });
 		} catch (error) {
-			return res.status(500).json({ message: "Internal server error" });
+			return res.status(500).json({ error: "Internal server error" });
 		}
 	} else {
 		res.setHeader("Allow", ["POST"]);

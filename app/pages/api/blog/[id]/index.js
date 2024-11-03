@@ -3,6 +3,7 @@ import { protect } from '../../../../middleware/auth';
 
 const prisma = new PrismaClient();
 const editBlogPost = async (req, res) => {
+    const { id } = req.query;
     const { title, description, tags, templateIds } = req.body;
 
     let templateConnections = [];
@@ -12,7 +13,14 @@ const editBlogPost = async (req, res) => {
         id: templateId
       }));
     }
-
+    let tagConnections = [];
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+      tagConnections = tagArray.map(tag => ({
+        where: { name: tag },
+        create: { name: tag },
+      }));
+    }
     try {
       // Restrict editing if the post is hidden
       const blogPost = await prisma.blogPost.findUnique({
@@ -26,22 +34,27 @@ const editBlogPost = async (req, res) => {
       if (blogPost.authorId !== req.userId) {
         return res.status(403).json({ error: 'You do not have permission to edit this blog post' });
       }
-
+      
       const updatedPost = await prisma.blogPost.update({
         where: { id: parseInt(id) },
         data: {
           title,
           description,
-          tags,
+          tags: {
+            connectOrCreate: tagConnections,
+            },
           templates: {
             connect: templateConnections
           },
+        },
+        include: {
+            tags: true,
         },
       });
 
       res.status(200).json(updatedPost);
     } catch (error) {
-      res.status(400).json({ error: 'Failed to update blog post' });
+      res.status(400).json({ error: `Failed to update post: ${error}` });
     }
 }
 
@@ -51,26 +64,30 @@ const deleteBlogPost = async (req, res) => {
         return res.status(404).json({ error: "Invalid ID." });
     }
     try {
-    await primsa.blogPost.findUnique({
+    const blogPost = await prisma.blogPost.findUnique({
         where: { id: Number(id) },
     });
     if (!blogPost) {
         return res.status(404).json({ error: "Blog post not found." });
     }
+    if (blogPost.authorId !== req.userId) {
+        return res.status(403).json({ error: "You do not have permission to delete this blog post." });
+    }
+    // user is authorized, delete the post 
     await prisma.blogPost.delete({
         where: { id: Number(id) },
     });
 
-    res.status(204).end();
+    return res.status(200).json({ message: "Blog post deleted." });
     } catch (error) {
-    res.status(400).json({ error: "Failed to delete blog post." });
+    res.status(400).json({ error: `Failed to delete blog post: ${error}` });
     }
 }
 
 const rateBlogPost = async (req, res) => {
     // we'll use POST requests for rating
     const { id } = req.query;
-    const { authorId } = req.userId;
+    const authorId = req.userId;
     const { rating } = req.body;
     if (!rating) {
       return res.status(400).json({ error: "rating is required." });

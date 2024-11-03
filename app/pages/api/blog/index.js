@@ -54,7 +54,7 @@ const createBlogPost = async (req, res) => {
 
       return res.status(201).json(newPost);
     } catch (error) {
-      return res.status(400).json({ error: "Failed to create Blog" });
+      return res.status(400).json({ error: `failed to create blog: ${error}` });
     }
 }
 
@@ -102,11 +102,28 @@ export default async function handler(req, res) {
           }
         }
       }
+      const authHeader = req.headers.authorization;
+      let userId = null;
 
-      filters.OR = [
-        { hidden: false }, // Publicly visible posts
-        { hidden: true, authorId: userId }, // Hidden posts visible only to the author
-      ]
+      if (authHeader) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          userId = decoded.userId;
+        } catch (error) {
+          // proceed as unauthenticated user
+        }
+      }
+      if (userId) {
+        // show non hidden posts or hidden posts authored by them for authenitcated users
+        filters.OR = [
+          { hidden: false },
+          { hidden: true, authorId: userId },
+        ];
+      } else {
+        // show only non hidden posts for unauthenticated users
+        filters.hidden = false;
+      }
       const blogPosts = await prisma.blogPost.findMany({
         where: filters,
         orderBy,
