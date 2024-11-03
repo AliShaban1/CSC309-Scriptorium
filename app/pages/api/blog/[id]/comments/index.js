@@ -1,0 +1,69 @@
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+export default async function handler(req, res) {
+  const { id } = req.query;
+
+  if (req.method === 'GET') {
+
+    try {
+      const comments = await prisma.comment.findMany({
+        where: { postId: parseInt(id), parentId: null }, // only fetch only top level comments 
+        OR: [
+          { hidden: false }, // Publicly visible comments
+          { hidden: true, authorId: userId }, // Hidden comments visible only to the author
+        ],
+        orderBy: { rating: 'desc' },
+        include: {
+          Replies: {
+            where: { hidden: false }, // Only include non-hidden replies
+            orderBy: { rating: 'desc' },
+          },
+        },
+      });
+
+      res.status(200).json(comments);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to retrieve comments' });
+    }
+  } else if (req.method === 'POST') {
+    let { content, authorId, parentId } = req.body;
+    authorId = Number(authorId)
+
+    if (!content || !authorId) {
+      return res.status(400).json({ error: 'Content and authorId are required' });
+    }
+    // validate parent id 
+    if (parentId) {
+        const parentComment = await prisma.comment.findUnique({
+            where: { id: parseInt(parentId) },
+        });
+        if (!parentComment) {
+            return res.status(400).json({ error: 'Invalid parentId: parent comment does not exist' });
+        }
+        if (parentComment.postId !== parseInt(id)) {
+            return res.status(400).json({ error: 'Invalid parentId: parent comment does not belong to this blog post' });
+        }
+        if (parentComment.hidden && parentComment.authorId === userId) {
+          return res.status(403).json({ error: 'You cannot reply to a hidden comment' });
+        }
+    }
+
+    try {
+      const newComment = await prisma.comment.create({
+        data: {
+          content,
+          authorId,
+          postId: parseInt(id),
+          parentId: parentId ? parseInt(parentId) : null, // set parent id if this is a reply to an existing comment
+          rating: 0,
+        },
+      });
+
+      res.status(201).json(newComment);
+    } catch (error) {
+      res.status(400).json({ error: `Failed, ${error}` });
+    }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
+  }
+}
