@@ -1,36 +1,14 @@
 import { PrismaClient } from '@prisma/client';
+import { protect } from '../../../../middleware/auth';
 const prisma = new PrismaClient();
-export default async function handler(req, res) {
-  const { id } = req.query;
 
-  if (req.method === 'GET') {
+const createComment = async (req, res) => {
+    const { id } = req.query;
+    let { content, parentId } = req.body;
+    authorId = req.userId;
 
-    try {
-      const comments = await prisma.comment.findMany({
-        where: { postId: parseInt(id), parentId: null }, // only fetch only top level comments 
-        OR: [
-          { hidden: false }, // Publicly visible comments
-          { hidden: true, authorId: userId }, // Hidden comments visible only to the author
-        ],
-        orderBy: { rating: 'desc' },
-        include: {
-          Replies: {
-            where: { hidden: false }, // Only include non-hidden replies
-            orderBy: { rating: 'desc' },
-          },
-        },
-      });
-
-      res.status(200).json(comments);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to retrieve comments' });
-    }
-  } else if (req.method === 'POST') {
-    let { content, authorId, parentId } = req.body;
-    authorId = Number(authorId)
-
-    if (!content || !authorId) {
-      return res.status(400).json({ error: 'Content and authorId are required' });
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
     }
     // validate parent id 
     if (parentId) {
@@ -61,8 +39,38 @@ export default async function handler(req, res) {
 
       res.status(201).json(newComment);
     } catch (error) {
-      res.status(400).json({ error: `Failed, ${error}` });
+      res.status(400).json({ error: "Failed to create comment." });
     }
+}
+
+
+
+export default async function handler(req, res) {
+  
+  if (req.method === 'GET') {
+    const { id } = req.query;
+    try {
+      const comments = await prisma.comment.findMany({
+        where: { postId: parseInt(id), parentId: null }, // only fetch only top level comments 
+        OR: [
+          { hidden: false }, // Publicly visible comments
+          { hidden: true, authorId: userId }, // Hidden comments visible only to the author
+        ],
+        orderBy: { rating: 'desc' },
+        include: {
+          Replies: {
+            where: { hidden: false }, // Only include non-hidden replies
+            orderBy: { rating: 'desc' },
+          },
+        },
+      });
+
+      res.status(200).json(comments);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to retrieve comments' });
+    }
+  } else if (req.method === 'POST') {
+    return protect(createComment)(req, res);
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }

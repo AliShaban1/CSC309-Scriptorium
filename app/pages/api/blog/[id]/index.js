@@ -1,37 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { protect } from '../../../../middleware/auth';
+
 const prisma = new PrismaClient();
-export default async function handler(req, res) {
-  const { id } = req.query;
-
-  if (req.method === 'GET') {
-    try {
-      const blogPost = await prisma.blogPost.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          comments: {
-            where: { hidden: false }, // Only include non-hidden comments
-            orderBy: { rating: 'desc' },
-          },
-          tags: true,
-          liked: true,
-          disliked: true
-        },
-      });
-
-      if (!blogPost) {
-        return res.status(404).json({ error: 'Blog post not found' });
-      }
-
-      // Check if the post is hidden and if the requester is not the author
-      if (blogPost.hidden && blogPost.authorId !== userId) {
-        return res.status(403).json({ error: 'You do not have permission to view this post' });
-      }
-
-      res.status(200).json(blogPost);
-    } catch (error) {
-      res.status(400).json({ error: 'Failed to get blog post' });
-    }
-  } else if (req.method === 'PUT') {
+const editBlogPost = async (req, res) => {
     const { title, description, tags, templateIds } = req.body;
 
     let templateConnections = [];
@@ -48,15 +19,14 @@ export default async function handler(req, res) {
         where: { id: parseInt(id) },
       });
 
-      if (!blogPost) {
+      if (!blogPost || blogPost.hidden) {
         return res.status(404).json({ error: 'Blog post not found' });
       }
 
-      if (blogPost.hidden && blogPost.authorId === userId) {
-        return res.status(403).json({ error: 'You cannot edit a hidden blog post' });
+      if (blogPost.authorId !== req.userId) {
+        return res.status(403).json({ error: 'You do not have permission to edit this blog post' });
       }
 
-      const { title, description, tags, templateIds } = req.body;
       const updatedPost = await prisma.blogPost.update({
         where: { id: parseInt(id) },
         data: {
@@ -73,24 +43,37 @@ export default async function handler(req, res) {
     } catch (error) {
       res.status(400).json({ error: 'Failed to update blog post' });
     }
-  } else if (req.method === 'DELETE') {
+}
+
+const deleteBlogPost = async (req, res) => {
+    const { id } = req.query;
     if (!Number(id)) {
-      return res.status(404).json({ error: "Invalid ID." });
+        return res.status(404).json({ error: "Invalid ID." });
     }
     try {
-      await prisma.blogPost.delete({
+    await primsa.blogPost.findUnique({
         where: { id: Number(id) },
-      });
-
-      res.status(204).end();
-    } catch (error) {
-      res.status(400).json({ error: `Failed, ${error}` });
+    });
+    if (!blogPost) {
+        return res.status(404).json({ error: "Blog post not found." });
     }
-  } else if (req.method === 'POST') {
+    await prisma.blogPost.delete({
+        where: { id: Number(id) },
+    });
+
+    res.status(204).end();
+    } catch (error) {
+    res.status(400).json({ error: "Failed to delete blog post." });
+    }
+}
+
+const rateBlogPost = async (req, res) => {
     // we'll use POST requests for rating
-    const { authorId, rating } = req.body;
-    if (!authorId || !rating) {
-      return res.status(400).json({ error: "authorId and rating are required." });
+    const { id } = req.query;
+    const { authorId } = req.userId;
+    const { rating } = req.body;
+    if (!rating) {
+      return res.status(400).json({ error: "rating is required." });
     }
 
     if (!Number(rating)) {
@@ -211,7 +194,43 @@ export default async function handler(req, res) {
     } catch (error) {
       return res.status(400).json({ error: `Failed to update blog post: ${error}` });
     }
+}
+
+const handler = async (req, res) => {
+
+  if (req.method === 'GET') {
+    try {
+        const { id } = req.query;
+        const blogPost = await prisma.blogPost.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+            comments: {
+                where: { hidden: false }, // Only include non-hidden comments
+                orderBy: { rating: 'desc' },
+            },
+            tags: true,
+            liked: true,
+            disliked: true
+            },
+        });
+
+        if (!blogPost || blogPost.hidden) {
+            return res.status(404).json({ error: 'Blog post not found' });
+        }
+
+        res.status(200).json(blogPost);
+    } catch (error) {
+      res.status(400).json({ error: 'Failed to get blog post' });
+    }
+  } else if (req.method === 'PUT') {
+    return protect(editBlogPost)(req, res);
+  } else if (req.method === 'DELETE') {
+    return protect(deleteBlogPost)(req, res);
+  } else if (req.method === 'POST') {
+    return protect(rateBlogPost)(req, res);
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
+
+export default protect(handler);

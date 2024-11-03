@@ -1,15 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import { protect } from '../../../middleware/auth';
 const prisma = new PrismaClient();
 
 const pageSize = 10;
 
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    // create a new blog post 
-    let { title, description, tags, templateIds, authorId } = req.body;
 
-    if (!title || !description || !authorId) {
-      return res.status(400).json({ error: 'Title, description, and authorId are required' });
+const createBlogPost = async (req, res) => {
+    // create a new blog post 
+    let { title, description, tags, templateIds} = req.body;
+    let authorId = req.userId;
+    if (!title || !description || !tags) {
+      return res.status(400).json({ error: 'Title, description, and tags are required' });
     }
 
     authorId = Number(authorId)
@@ -30,7 +31,6 @@ export default async function handler(req, res) {
         id: templateId
       }));
     }
-    // VALIDATE AUTHOR ID LATER
 
     try {
       const data = {
@@ -54,8 +54,13 @@ export default async function handler(req, res) {
 
       return res.status(201).json(newPost);
     } catch (error) {
-      return res.status(400).json({ error: `Failed, ${error}` });
+      return res.status(400).json({ error: "Failed to create Blog" });
     }
+}
+
+export default async function handler(req, res) {
+  if (req.method === 'POST') {
+    return protect(createBlogPost)(req, res);
   } else if (req.method === 'GET') {
 
     try {

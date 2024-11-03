@@ -1,37 +1,27 @@
 import { PrismaClient } from "@prisma/client";
-import jwt from 'jsonwebtoken';
+import { protect, adminOnly } from "../../../middleware/auth";
 
 const prisma = new PrismaClient();
 
-export default async function hideContentHandler(req, res) {
+const hideContentHandler = async (req, res) => {
   if (req.method !== 'PUT') {
     res.setHeader('Allow', ['PUT']);
     return res.status(405).end(`Method ${req.method} not allowed`);
   }
 
   const { contentId, contentType } = req.body;
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-
+  
   try {
-    const { userId, role } = jwt.verify(token, process.env.JWT_SECRET);
-    if (role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
     let content;
     if (contentType === 'post') {
-      // Use the `update` method for updating the content
       content = await prisma.blogPost.update({
         where: { id: contentId },
-        data: { hidden: true }, 
+        data: { hidden: true },
       });
     } else if (contentType === 'comment') {
       content = await prisma.comment.update({
         where: { id: contentId },
-        data: { hidden: true }, 
+        data: { hidden: true },
       });
     }
 
@@ -40,4 +30,6 @@ export default async function hideContentHandler(req, res) {
     console.error("Error hiding content:", error);
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
-}
+};
+
+export default protect(adminOnly(hideContentHandler));
