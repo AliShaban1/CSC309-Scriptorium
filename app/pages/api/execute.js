@@ -3,12 +3,13 @@ import fs from 'fs';
 import path from 'path';
 
 const LANGUAGE_CONFIG = {
-  python: { extension: '.py', command: 'python3' },
-  javascript: { extension: '.js', command: 'node' },
-  c: { extension: '.c', command: 'gcc file.c -o file && ./file' },
-  cpp: { extension: '.cpp', command: 'g++ file.cpp -o file && ./file' },
-  java: { extension: '.java', command: 'javac file.java && java file' },
-};
+    python: { extension: '.py', command: 'python3' },
+    javascript: { extension: '.js', command: 'node' },
+    c: { extension: '.c', command: (filePath) => `gcc "${filePath}" -o "${filePath}.out" && "${filePath}.out"` },
+    cpp: { extension: '.cpp', command: (filePath) => `g++ "${filePath}" -o "${filePath}.out" && "${filePath}.out"` },
+    java: { extension: '.java', command: 'javac file.java && java file' },
+  };
+  
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
     }
 
     // constrcut command 
-    const execCommand = `${command} "${filePath}"`;
+    const execCommand = typeof command === 'function' ? command(filePath) : `${command} "${filePath}"`;
 
     const childProcess = exec(execCommand, { timeout: 5000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);

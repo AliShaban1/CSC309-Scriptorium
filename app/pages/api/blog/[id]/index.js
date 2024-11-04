@@ -230,8 +230,18 @@ export default async function handler(req, res) {
             disliked: true
             },
         });
-
-        if (!blogPost || blogPost.hidden) {
+        const authHeader = req.headers.authorization;
+        let userId = null;
+        if (authHeader) {
+          try {
+            const token = authHeader.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            userId = decoded.userId;
+          } catch (error) {
+            // proceed as unauthenticated user
+          }
+        }
+        if (!blogPost || (blogPost.hidden && userId && blogPost.authorId !== userId)) {
             return res.status(404).json({ error: 'Blog post not found' });
         }
 

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { protect } from '../../../../../middleware/auth';
+import jwt from 'jsonwebtoken';
 const prisma = new PrismaClient();
 
 const createComment = async (req, res) => {

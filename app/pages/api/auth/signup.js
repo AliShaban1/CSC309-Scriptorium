@@ -12,6 +12,7 @@ export default async function handler(req, res) {
 			password,
 			phoneNumber,
 			profilePicture,
+			role,
 		} = req.body;
 
 		try {
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
 					password: hashedPassword,
 					phoneNumber,
 					profilePicture,
+					role,
 				},
 			});
 
