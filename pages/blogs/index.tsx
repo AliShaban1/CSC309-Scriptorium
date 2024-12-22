@@ -9,7 +9,9 @@ const BlogsPage: React.FC = () => {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [placeholder, setPlaceholder] = useState(`Search blog posts by ${filter}`)
+  const [placeholder, setPlaceholder] = useState(
+    `Search blog posts by ${filter}`
+  );
 
   // Fetch templates
   const fetchBlogs = async () => {
@@ -27,14 +29,14 @@ const BlogsPage: React.FC = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setFilter("title");
-        setPlaceholder("Search blog posts by title")
+        setPlaceholder("Search blog posts by title");
       } else {
         const profUrl = new URL("/api/auth/profile", window.location.origin);
         const response = await fetch(profUrl.toString(), {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (response.ok) {
           const json = await response.json();
@@ -72,10 +74,16 @@ const BlogsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center py-10">
-      <div className="flex justify-center items-center mt-2" style={{ minWidth: "75%" }}>
+      <div
+        className="flex justify-center items-center mt-2"
+        style={{ minWidth: "75%" }}
+      >
         <select
           value={filter}
-          onChange={(e) => { setFilter(e.target.value); setPlaceholder(`Search blog posts by ${e.target.value}`) }}
+          onChange={(e) => {
+            setFilter(e.target.value);
+            setPlaceholder(`Search blog posts by ${e.target.value}`);
+          }}
           className="h-14 px-4 py-2 mr-2 rounded-lg appearance-none text-center"
           style={{
             backgroundColor: "var(--header)",
@@ -118,7 +126,6 @@ const BlogsPage: React.FC = () => {
             tags={blog.tags}
             link={`/blogs/${blog.id}`}
             authorName={blog.author.firstName}
-            authorProfilePic={blog.author.profilePicture}
             rating={blog.rating}
           />
         ))}
