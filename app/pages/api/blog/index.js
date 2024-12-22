@@ -3,60 +3,60 @@ import { protect } from '../../../middleware/auth';
 import jwt from 'jsonwebtoken';
 const prisma = new PrismaClient();
 
-const pageSize = 10;
+const pageSize = 6;
 
 
 const createBlogPost = async (req, res) => {
-    // create a new blog post 
-    let { title, description, tags, templateIds} = req.body;
-    let authorId = req.userId;
-    if (!title || !description || !tags) {
-      return res.status(400).json({ error: 'Title, description, and tags are required' });
-    }
+  // create a new blog post 
+  let { title, description, tags, templateIds } = req.body;
+  let authorId = req.userId;
+  if (!title || !description || !tags) {
+    return res.status(400).json({ error: 'Title, description, and tags are required' });
+  }
 
-    authorId = Number(authorId)
+  authorId = Number(authorId)
 
-    let tagConnections = [];
-    if (tags) {
-      const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
-      tagConnections = tagArray.map(tag => ({
-        where: { name: tag },
-        create: { name: tag }
-      }));
-    }
+  let tagConnections = [];
+  if (tags) {
+    const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+    tagConnections = tagArray.map(tag => ({
+      where: { name: tag },
+      create: { name: tag }
+    }));
+  }
 
-    let templateConnections = [];
-    if (templateIds) {
-      const templateArray = templateIds.split(',').map(templateId => parseInt(templateId.trim()));
-      templateConnections = templateArray.map(templateId => ({
-        id: templateId
-      }));
-    }
+  let templateConnections = [];
+  if (templateIds) {
+    const templateArray = templateIds.split(',').map(templateId => parseInt(templateId.trim()));
+    templateConnections = templateArray.map(templateId => ({
+      id: templateId
+    }));
+  }
 
-    try {
-      const data = {
-        title,
-        description,
-        authorId,
-        tags: {
-          connectOrCreate: tagConnections
-        },
-        templates: {
-          connect: templateConnections
-        }
-      };;
+  try {
+    const data = {
+      title,
+      description,
+      authorId,
+      tags: {
+        connectOrCreate: tagConnections
+      },
+      templates: {
+        connect: templateConnections
+      }
+    };;
 
-      const newPost = await prisma.blogPost.create({
-        data,
-        include: {
-          tags: true,
-        },
-      });
+    const newPost = await prisma.blogPost.create({
+      data,
+      include: {
+        tags: true,
+      },
+    });
 
-      return res.status(201).json(newPost);
-    } catch (error) {
-      return res.status(400).json({ error: `failed to create blog: ${error}` });
-    }
+    return res.status(201).json(newPost);
+  } catch (error) {
+    return res.status(400).json({ error: `failed to create blog: ${error}` });
+  }
 }
 
 export default async function handler(req, res) {
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     try {
       let orderBy = { rating: 'desc' };
 
-      const { id, title, description, tags, templateIds, authorId, page } = req.body;
+      const { id, title, description, tags, templateIds, authorId, page } = req.query;
 
       const filters = {};
 
@@ -130,23 +130,25 @@ export default async function handler(req, res) {
         orderBy,
         include: {
           comments: {
-            where: { hidden: false},
+            where: { hidden: false },
             orderBy: { rating: 'desc' },
           },
-          tags: true
+          tags: true,
+          author: true
         },
       });
       let pageNumber = 1;
       if (page && Number(page)) {
         pageNumber = Number(page);
       }
+      const totalPages = Math.ceil(blogPosts.length / pageSize);
       const firstOnPage = (pageNumber - 1) * pageSize;
-      const blogPostPage = blogPosts.slice(firstOnPage, firstOnPage + pageSize - 1);
 
-      return res.status(200).json(blogPostPage);
+      const blogPostPage = blogPosts.slice(firstOnPage, firstOnPage + pageSize);
+
+      return res.status(200).json({ results: blogPostPage, totalPages });
     } catch (error) {
-      console.error('Error fetching blog posts:', error);
-      return res.status(400).json({ error: 'Failed to retrieve blog posts' });
+      return res.status(400).json({ error: `Error: ${error}` });
     }
   } else {
     return res.status(405).json({ error: 'Method not allowed' });

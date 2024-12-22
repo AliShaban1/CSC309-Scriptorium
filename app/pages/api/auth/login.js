@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
       //generate token
       const token = generateToken(user.id);
-      return res.status(200).json({ token, user: { id: user.id, email: user.email } });
+      return res.status(200).json({ token, user: { id: user.id, email: user.email, role: user.role } });
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' })
     }

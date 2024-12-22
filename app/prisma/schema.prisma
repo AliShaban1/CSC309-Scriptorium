@@ -30,6 +30,8 @@ model User {
   likedComments    Comment[]  @relation("likedComments")
   dislikedComments Comment[]  @relation("dislikedComments")
   role             String     @default("user")
+  blogs            BlogPost[]
+  comments         Comment[]
 }
 
 model Template {
@@ -61,6 +63,7 @@ model BlogPost {
   description String
   tags        Tag[]      @relation("BlogPostTags")
   authorId    Int
+  author      User       @relation(fields: [authorId], references: [id])
   comments    Comment[]
   rating      Int        @default(0)
   hidden      Boolean    @default(false)
@@ -76,6 +79,7 @@ model Comment {
   id          Int       @id @default(autoincrement())
   content     String
   authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
   postId      Int
   parentId    Int? // Nullable, since top-level comments don’t have a parent
   post        BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)

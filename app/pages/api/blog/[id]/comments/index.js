@@ -32,8 +32,12 @@ const createComment = async (req, res) => {
             rating: 0,
             },
         });
+        const commentIncludingAuthor = await prisma.comment.findUnique({
+          where: { id: newComment.id },
+          include: { author: true},
+      });
 
-        res.status(201).json(newComment);
+        res.status(201).json(commentIncludingAuthor);
     } catch (error) {
       res.status(400).json({ error: "Failed to create comment." });
     }

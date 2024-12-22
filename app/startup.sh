@@ -40,7 +40,7 @@ npx prisma migrate dev --name init
 echo "Generating Prisma Client..."
 npx prisma generate
 
-# Step 6: Check for Node.js (you can remove Python/Java checks if not needed)
+# Step 6: Check for Node.js
 echo "Checking for Node.js..."
 if ! command -v node &> /dev/null
 then
@@ -52,32 +52,23 @@ fi
 
 # Step 7: Create an admin user
 echo "Creating an admin user..."
-node -e "
-  const { PrismaClient } = require('@prisma/client');
-  const bcrypt = require('bcrypt');
-  const prisma = new PrismaClient();
-  
-  async function createAdminUser() {
-    const hashedPassword = await bcrypt.hash('adminpassword', 10);
-    await prisma.user.create({
-      data: {
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'admin@example.com',
-        password: hashedPassword,
-        role: 'admin'
-      }
-    });
-    console.log('Admin user created successfully with email: admin@example.com and password: adminpassword');
-  }
+node createAdminUser.js
 
-  createAdminUser()
-    .catch((error) => {
-      console.error('Error creating admin user:', error);
-    })
-    .finally(() => {
-      prisma.$disconnect();
-    });
-"
+# Step 8: Build Docker images for code execution environments
+echo "Building Docker images for code execution environments..."
+
+docker build -t code-executor-rust -f docker/rust/Dockerfile .
+docker build -t code-executor-python -f docker/python/Dockerfile .
+docker build -t code-executor-c -f docker/c/Dockerfile .
+docker build -t code-executor-cpp -f docker/cpp/Dockerfile .
+docker build -t code-executor-java -f docker/java/Dockerfile .
+docker build -t code-executor-perl -f docker/perl/Dockerfile .
+docker build -t code-executor-r -f docker/r/Dockerfile .
+docker build -t code-executor-ruby -f docker/ruby/Dockerfile .
+docker build -t code-executor-haskell -f docker/haskell/Dockerfile .
+docker build -t code-executor-js -f docker/node/Dockerfile .
+
+echo "Docker images built successfully."
+
 
 echo "Environment setup completed successfully!"

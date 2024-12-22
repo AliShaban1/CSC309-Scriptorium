@@ -3,8 +3,8 @@ import { protect } from '../../../middleware/auth';
 
 const prisma = new PrismaClient();
 
-const supportedLanguages = ["python", "cpp", "c", "java", "javascript"];
-const pageSize = 10;
+const supportedLanguages = ["python", "cpp", "c", "java", "javascript", "r", "rust", "ruby", "perl", "haskell"];
+const pageSize = 6;
 
 const createTemplate = async (req, res) => {
     let { title, code, language, explanation, tags, forked, forkedId } = req.body;
@@ -65,13 +65,19 @@ const createTemplate = async (req, res) => {
 
     // if there are tags, we need to split them by comma
     let tagConnections = [];
-    console.log(tags);
     if (tags) {
-        const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
-        tagConnections = tagArray.map(tag => ({
-            where: { name: tag },
-            create: { name: tag }
-        }));
+        if (typeof tags === 'string' || tags instanceof String) {
+            const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+            tagConnections = tagArray.map(tag => ({
+                where: { name: tag },
+                create: { name: tag }
+            }))
+        } else {
+            tagConnections = tags.map(tag => ({
+                where: { name: tag.name },
+                create: { name: tag.name }
+            }))
+        }
     }
 
     // now, save the actual template
@@ -115,7 +121,7 @@ export default async function handler(req, res) {
         return protect(createTemplate)(req, res);
 
     } else if (req.method === 'GET') {
-        const { id, title, code, tags, authorId, page } = req.body;
+        const { id, title, code, tags, authorId, page } = req.query;
         const filters = {};
 
         // add the search filters if they are actually valid
@@ -123,7 +129,7 @@ export default async function handler(req, res) {
             filters.id = Number(id);
         }
         if (authorId && Number(authorId)) {
-            filters.authorId = Number(authorId);
+            filters.authorID = Number(authorId);
         }
         if (title) {
             filters.title = {
@@ -136,7 +142,7 @@ export default async function handler(req, res) {
             }
         }
         if (tags) {
-            let tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+            tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
             filters.tags = {
                 some: {
                     name: { in: tagArray }
@@ -148,12 +154,13 @@ export default async function handler(req, res) {
             pageNumber = parseInt(page);
         }
 
-        const templates = await prisma.template.findMany({ where: filters, include: { tags: true } });
+        const templates = await prisma.template.findMany({ where: filters, include: { tags: true, author: true } });
+        const totalPages = Math.ceil(templates.length / 6);
         const firstOnPage = (pageNumber - 1) * pageSize;
 
-        const templatesPage = templates.slice(firstOnPage, firstOnPage + pageSize - 1);
+        const templatesPage = templates.slice(firstOnPage, firstOnPage + pageSize);
 
-        return res.status(200).json({ results: templatesPage });
+        return res.status(200).json({ results: templatesPage, totalPages });
     } else {
         return res.status(400).json({ error: "Method not supported." })
     }

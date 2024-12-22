@@ -100,7 +100,7 @@ export default async function handler(req, res) {
         try {
             const requested = await prisma.template.findFirst({
                 where: { id: Number(id) },
-                include: { tags: true, blogPosts: true }
+                include: { tags: true, blogPosts: { include: { author: true, tags: true } }, author: true }
             })
             if (requested === null) {
                 return res.status(404).json({ error: `Template with ID ${id} not found.` })
